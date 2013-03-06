@@ -1,13 +1,16 @@
 //import java.util.Iterator;
 
 Ocean ocean;
-SineFish myFish = null;
-HashMap fish;
+Creature myCreature = null;
+HashMap creatures;
 
 int selfID = -1;
 
-final int FISH_NUM = 3;
 final float LIQUID_DRAG = 0.5;
+
+final int TYPE_SINEFISH = 0;
+final int TYPE_FASTFISH = 1;
+final int TYPE_AIRFIGHTER = 2;
 
 void setup()
 {
@@ -18,21 +21,8 @@ void setup()
   
   ocean = new Ocean();
   
-  fish = new HashMap();
+  creatures = new HashMap();
   
-  /*
-  for (int i=0; i<FISH_NUM; i++)
-  {
-    float x = random(width*2) - width;
-    float y = random(height*2) - height;
-    float size = random(2, 16);
-    int legs = (int)random(5, 20);
-    fish.add(new SineFish(new PVector(x, y), size, legs, color(random(150)+140, 57, 100)));
-  }
-  */
-  
-  //myFish = new SineFish(new PVector(0, 0), 5, 10, color(56, 91, 100));
-    
   background(0);
   noLoop();
 }
@@ -47,21 +37,19 @@ void draw()
   
   pushMatrix();
   
-  translate(-myFish.pos.x+width/2, -myFish.pos.y+height/2);
+  translate(-myCreature.getPosition().x+width/2, -myCreature.getPosition().y+height/2);
   ocean.draw();
   
-  Iterator i = fish.entrySet().iterator();
+  Iterator i = creatures.entrySet().iterator();
   while(i.hasNext())
   {
-    SineFish f = (SineFish)i.next().getValue();
+    Creature c = (Creature)i.next().getValue();
     //console.log("fish = " + i.next().getKey());
 
-    f.setAllArmsSpeed(0.02);
+    c.applyDrag(LIQUID_DRAG);
     
-    f.applyDrag(LIQUID_DRAG);
-    
-    f.update();
-    f.draw();
+    c.update();
+    c.display();
   }
  
   popMatrix();
@@ -170,7 +158,7 @@ class SineArm
 /****************************************************************************/
 /****************************************************************************/
 
-class SineFish
+class SineFish implements Creature
 {
   PVector pos;
   PVector vel;
@@ -263,6 +251,9 @@ class SineFish
   
   public void update()
   {
+    setAllArmsSpeed(0.02);
+
+
     if (moveUp)
       move(new PVector(0, -1));
     if (moveLeft)
@@ -294,7 +285,7 @@ class SineFish
     
   }
   
-  public void draw()
+  public void display()
   {
     pushMatrix();
     translate(pos.x, pos.y);
@@ -324,12 +315,319 @@ class SineFish
       angAcc = 0.002;    
   }
 
+  public void setPosition(PVector p)
+  {
+    pos = p;
+  }
+
+  public PVector getPosition()
+  {
+    return pos;
+  }
+
   public void setUp(boolean is) { moveUp = is; }
+  public boolean getUp() { return moveUp; }
   public void setRight(boolean is) { moveRight = is; }
+  public boolean getRight() { return moveRight; }
   public void setDown(boolean is) { moveDown = is; }
+  public boolean getDown() { return moveDown; }
   public void setLeft(boolean is) { moveLeft = is; }
+  public boolean getLeft() { return moveLeft; }
 
 }
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
+
+class FastFish implements Creature
+{
+  PVector pos;
+  PVector vel;
+  PVector acc;
+  
+  float angAcc;
+  float angVel;
+  float ang;
+  
+  float size;
+  float mass;
+  
+  float t;
+  float flapSpeed;
+  
+  ArrayList<Bubble> bubbles;
+
+  boolean moveUp = false;
+  boolean moveDown = false;
+  boolean moveRight = false;
+  boolean moveLeft = false;
+  
+  public FastFish(PVector pos, float initSize)
+  {
+    this.pos = pos;
+    this.vel = new PVector(0, 0);
+    this.acc = new PVector(0, 0);
+    
+    size = initSize;
+    mass = size*2;
+    
+    ang = 0;
+    angVel = 0;
+    angAcc = 0;
+    
+    bubbles = new ArrayList<Bubble>();
+    
+    flapSpeed = 0.1;
+    t=0;
+  }
+  
+  public void applyDrag(float c)
+  {
+    float speed = vel.mag();
+    float dragMag = c * speed * speed;
+    
+    PVector drag = vel.get();
+    drag.mult(-1);
+    drag.normalize();
+    drag.mult(dragMag);
+    applyForce(drag);
+  }
+  
+  public void applyForce(PVector force)
+  {
+    PVector f = PVector.div(force, mass);
+    acc.add(f);
+  }
+  
+  public void update()
+  {
+    if (moveUp)
+    {
+      flapSpeed = 0.8;
+      PVector angVec = new PVector(cos(ang-PI/2), sin(ang-PI/2));
+      applyForce(PVector.mult(angVec, 4));
+    }
+    else 
+    {
+      flapSpeed = 0.1;
+    }
+
+    if (moveLeft)
+    {
+      PVector s = new PVector(17, -22);
+      float sxTemp = s.x;
+      s.x = s.x*cos(ang) - s.y*sin(ang);
+      s.y = sxTemp*sin(ang) + s.y*cos(ang);
+      PVector angVec = new PVector(cos(ang), sin(ang));
+      PVector initSpeed = PVector.mult(angVec, random(2,4));
+      angAcc = -PI/200;
+      bubbles.add(new Bubble(PVector.add(pos, s), initSpeed, random(2, 8)));
+    }
+
+    if (moveRight)
+    {
+      PVector s = new PVector(-17, -22);
+      float sxTemp = s.x;
+      s.x = s.x*cos(ang) - s.y*sin(ang);
+      s.y = sxTemp*sin(ang) + s.y*cos(ang);
+      PVector angVec = new PVector(cos(ang+PI), sin(ang+PI));
+      PVector initSpeed = PVector.mult(angVec, random(2,4));
+      angAcc = PI/200;
+      bubbles.add(new Bubble(PVector.add(pos, s), initSpeed, random(2, 8)));
+    }
+
+    vel.add(acc);
+    pos.add(vel);
+    
+    acc.mult(0);
+    t+=flapSpeed;
+    
+    angVel += angAcc;
+    ang += angVel;
+    if (ang > PI*2)
+          ang -= PI*2;
+    angAcc = 0;
+    
+    // like friction for angular motion
+    angVel *= 0.9;
+    
+    for (int i=bubbles.size()-1; i>=0; i--)
+    {
+      Bubble b = (Bubble)bubbles.get(i);
+      if (!b.isAlive())
+      {
+        bubbles.remove(i);
+        continue;
+      }
+      
+      b.applyForce(new PVector(0, -0.03));
+      b.update();
+    }
+  }
+  
+  public void display()
+  {
+    pushMatrix();
+    translate(pos.x, pos.y);
+    rotate(ang);
+    
+    
+    // draw head
+    float yOffset = -23;
+
+    fill(50, 100, 100, 100);
+    noStroke();
+    ellipse(-10, yOffset, 5, 5);
+    ellipse(10, yOffset, 5, 5);
+
+    fill(0, 0, 100, 20);
+    stroke(0, 0, 100, 20);
+    beginShape();
+    curveVertex(5, yOffset-4);
+    curveVertex(15, yOffset-8);
+    curveVertex(15, yOffset+8);
+    curveVertex(5, yOffset+4);
+    curveVertex(-5, yOffset+4);
+    curveVertex(-15, yOffset+8);
+    curveVertex(-15, yOffset-8);
+    curveVertex(-5, yOffset-4);
+    curveVertex(5, yOffset-4);
+    curveVertex(15, yOffset-8);
+    curveVertex(15, yOffset+8);
+    endShape();
+    
+    yOffset = -10;
+    float x=0, y=0;
+    for (int i=0; i<9; i++)
+    {
+      x = sin(t-i)*i;
+      y = yOffset;
+      ellipse(x, y, 15-i*2, (10-i));
+      ellipse(x, y, 3, 3);
+      yOffset += (12-i);
+    }
+    
+    popMatrix();
+    
+    for (int i=0; i<bubbles.size(); i++)
+    {
+      ((Bubble)bubbles.get(i)).draw();
+    }
+
+  }
+  
+  public PVector getPosition()
+  {
+    return pos;
+  }
+
+  public void setPosition(PVector p)
+  {
+    pos = p;
+  }
+
+  public void setUp(boolean is) { moveUp = is; }
+  public boolean getUp() { return moveUp; }
+  public void setRight(boolean is) { moveRight = is; }
+  public boolean getRight() { return moveRight; }
+  public void setDown(boolean is) { moveDown = is; }
+  public boolean getDown() { return moveDown; }
+  public void setLeft(boolean is) { moveLeft = is; }
+  public boolean getLeft() { return moveLeft; }
+
+}
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
+class Bubble
+{
+  PVector pos;
+  PVector vel;
+  PVector acc;
+  
+  float size;
+  
+  float t;
+  
+  public Bubble(PVector pos, PVector vel, float size)
+  {
+    this.pos = pos;
+    this.vel = vel;
+    this.size = size;
+    
+    // simulate drag for x axis
+    vel.x *= 0.8;
+    
+    this.acc = new PVector(0, 0);
+    t = 0;
+  }
+  
+  public void update()
+  {
+    pos.add(vel);
+    vel.add(acc);
+    
+    t+=0.5;
+    
+    acc.mult(0);
+  }
+  
+  public void applyForce(PVector force)
+  {
+    PVector f = PVector.mult(force, size);
+    acc.add(f);
+  }
+  
+  public boolean isAlive()
+  {
+    if (pos.y < -1000)
+          return false;
+          
+    return true;
+  }
+  
+  public void draw()
+  {
+    pushMatrix();
+    translate(pos.x, pos.y);
+    
+    fill(0, 0, 100, 60);
+    stroke(0, 0, 100, 80);
+    strokeWeight(1);
+    
+    ellipse(0+sin(t)*2, 0, size, size);
+    
+    popMatrix();
+  }
+}
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
+interface Creature
+{
+  void applyDrag(float c);
+  void update();
+  void display();
+
+  void setPosition(PVector pos);
+  PVector getPosition();
+
+  void setUp(boolean up);
+  boolean getUp();
+  void setDown(boolean down);
+  boolean getDown();
+  void setRight(boolean right);
+  boolean getRight();
+  void setLeft(boolean left);
+  boolean getLeft();
+}
+
 
 /****************************************************************************/
 /****************************************************************************/
@@ -339,7 +637,7 @@ interface JavaScript
 {
   void keyPress(int id, int key);
   void keyRelease(int id, int key);
-  void addNewCreature(int id, float x, float y, int size, int legs);
+  void addNewCreature(int id, int type, float x, float y, int size, int arms, int r, int g, int b);
   void updateSelfPosition(int id, float x, float y)
 }
 
@@ -347,82 +645,90 @@ JavaScript javascript = null;
 
 void setJavaScript(JavaScript js) { javascript = js; }
 
-void initSelf(int id)
+void initSelf(int id, int type, int x, int y, int size, int arms, int r, int g, int b)
 {
   selfID = id;
-  fish.put(selfID.toString(), new SineFish(new PVector(0, 0), 5, 10, color(56, 91, 100)));
-  myFish = (SineFish)fish.get(selfID.toString());
-  console.log("myFish = " + myFish);
+
+  if (type == TYPE_SINEFISH)
+    creatures.put(selfID.toString(), new SineFish(new PVector(x, y), size, arms, color(r, g, b)));
+  else if (type == TYPE_FASTFISH)  
+    creatures.put(selfID.toString(), new FastFish(new PVector(x, y), size));
+
+  myCreature = (Creature)creatures.get(selfID.toString());
+  console.log("myCreature = " + myCreature);
 
   // call server to add the creature
-  addNewCreature(selfID, 0, 0, 5, 10);
+  addNewCreature(selfID, type, x, y, size, arms, r, g, b);
 
   loop();
 }
 
 void serverRemoveCreature(int id)
 {
-  fish.remove(id);
+  creatures.remove(id);
 }
 
 void serverUpdateCreaturePos(int id, float x, float y)
 {
-  SineFish f = (SineFish)fish.get(id.toString());
-  f.pos.x = x;
-  f.pos.y = y;
+  Creature c = (Creature)creatures.get(id.toString());
+  c.setPosition(new PVector(x, y));
 }
 
 void serverGimmeYourPosition()
 {
-  SineFish f = (SineFish)fish.get(selfID.toString());
+  Creature c = (Creature)creatures.get(selfID.toString());
 
-  updateSelfPosition(selfID, f.pos.x, f.pos.y);
+  updateSelfPosition(selfID, c.getPosition().x, c.getPosition().y);
 }
 
-void serverAddNewCreature(int id, float x, float y, int size, int legs)
+void serverAddNewCreature(int id, int type, float x, float y, int size, int arms, int r, int g, int b)
 {
   console.log("adding new creature with id = ", id);
-  fish.put(id.toString(), new SineFish(new PVector(x, y), size, legs, color(56, 91, 100)));
+
+  if (type == TYPE_SINEFISH)
+    creatures.put(id, new SineFish(new PVector(x, y), size, arms, color(r, g, b)));
+  else if (type == TYPE_FASTFISH)  
+    creatures.put(id, new FastFish(new PVector(x, y), size));
 }
 
 void serverKeyPressed(int id, int k)
 {
   console.log("got keyPressed from " + id);
-  SineFish f = (SineFish)fish.get(id.toString());
-  console.log("fish = " + f);
+  Creature c = (Creature)creatures.get(id.toString());
+  console.log("creature = " + c);
 
   if (k == UP)
-    f.setUp(true);
+    c.setUp(true);
   if (k == RIGHT)
-    f.setRight(true);
+    c.setRight(true);
   if (k == DOWN)
-    f.setDown(true);
+    c.setDown(true);
   if (k == LEFT)
-    f.setLeft(true);
+    c.setLeft(true);
 }
 
 void serverKeyReleased(int id, int k)
 {
-  SineFish f = (SineFish)fish.get(id.toString());
+  Creature c = (Creature)creatures.get(id.toString());
 
   if (k == UP)
-    f.setUp(false);
+    c.setUp(false);
   if (k == RIGHT)
-    f.setRight(false);
+    c.setRight(false);
   if (k == DOWN)
-    f.setDown(false);
+    c.setDown(false);
   if (k == LEFT)
-    f.setLeft(false);
+    c.setLeft(false);
 }
 
 void keyPressed()
 {
-  SineFish me = (SineFish)fish.get(selfID.toString());
+  Creature c = (Creature)creatures.get(selfID.toString());
 
-  if ((keyCode == UP && !me.moveUp) ||
-      (keyCode == RIGHT && !me.moveRight) ||
-      (keyCode == DOWN && !me.moveDown) ||
-      (keyCode == LEFT && !me.moveLeft)) {
+  if ((keyCode == UP && !c.getUp()) ||
+      (keyCode == RIGHT && !c.getRight()) ||
+      (keyCode == DOWN && !c.getDown()) ||
+      (keyCode == LEFT && !c.getLeft())) {
         if (javascript != null) 
               javascript.keyPress(selfID, keyCode);
       }

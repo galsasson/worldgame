@@ -20,19 +20,30 @@ function updateSelfPosition(cid, x, y)
 	socket.emit('set_position', {'cid':cid, 'x':x, 'y':y});
 }
 
-function addNewCreature(cid, x, y, size, legs)
+function addNewCreature(cid, type, x, y, size, arms, r, g, b)
 {
-	socket.emit('new_creature', {'cid':cid, 'x':x, 'y':y, 'size':size, 'legs':legs});
+	socket.emit('new_creature',
+		{
+			'cid':cid,
+			'type':type,
+			'x':x,
+			'y':y,
+			'size':size,
+			'arms':arms,
+			'r':r,
+			'g':g,
+			'b':b
+		});
 }
 
 function initClient()
 {
 	pjs = Processing.getInstanceById(getProcessingSketchId());
- 	socket = io.connect('ws://172.26.12.216:80');
+ 	socket = io.connect('ws://localhost:80');
 
  	socket.on('init', function(data) {
 		console.log("client ID: " + data.cid);
-		pjs.initSelf(data.cid);
+		pjs.initSelf(data.cid, data.type, data.x, data.y, data.size, data.arms, data.r, data.g, data.b);
 		pjs.setJavaScript(parent);
 	});
 
@@ -45,7 +56,7 @@ function initClient()
 	});
 
 	socket.on('new_creature', function (data) {
-		pjs.serverAddNewCreature(data.cid, data.x, data.y, data.size, data.legs);
+		pjs.serverAddNewCreature(data.cid, data.type, data.x, data.y, data.size, data.arms, data.r, data.g, data.b);
 	});
 
 	socket.on('del_creature', function (data) {
@@ -59,7 +70,7 @@ function initClient()
 
 	setInterval(function() {
 		pjs.serverGimmeYourPosition();
-	}, 2000);
+	}, 500);
 }
 
 

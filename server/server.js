@@ -3,18 +3,27 @@ function Creature()
 {
 	this.socket = null;
 	this.id = -1;
+	this.type = -1;
 	this.x = 0;
 	this.y = 0;
 	this.size = 0;
-	this.legs = 0;
+	this.arms = 0;
+	this.r = 0;
+	this.g = 0;
+	this.b = 0;
 
-	this.init = function(id, socket)
+	this.init = function(id, socket, type, x, y, size, arms, r, g, b)
 	{
 		this.id = id;
 		this.socket = socket;
-		this.position = {'x':0, 'y':0};
-		this.size = 5;
-		this.legs = 10;
+		this.type = type;
+		this.x = x;
+		this.y = y;
+		this.size = size;
+		this.arms = arms;
+		this.r = r;
+		this.g = g;
+		this.b = b;
 	}
 }
 
@@ -49,23 +58,38 @@ var clientsNum = 0;
 app.listen(80);
 
 io.sockets.on('connection', function(socket) {
-	console.log("new client");
 
 	var id = clientsNum++;
 
 	var newC = new Creature();
-	newC.init(id, socket);
+	newC.init(id, 
+		socket, 
+		Math.floor(Math.random()*2), 
+		0, 0, 
+		Math.random()*5+5, 
+		Math.random()*20+5,
+		230, 20, 50);
 
+	socket.emit('init', { 
+		'cid' : newC.id,
+		'type' : newC.type,
+		'x' : newC.x,
+		'y' : newC.y,
+		'size' : newC.size,
+		'arms' : newC.arms,
+		'r' : newC.r,
+		'g' : newC.g,
+		'b' : newC.b
+	});
 
-
-	socket.emit('init', { 'cid' : id});
+	console.log("new client with ID:" + newC.id);
 
 	// send all existing creatures
 	for (var c in creatures)
 	{
 		var cr = creatures[c];
 		socket.emit('new_creature', 
-			{'cid':c, 'x':cr.x, 'y':cr.y, 'size':cr.size, 'legs':cr.legs});		
+			{'cid':cr.id, 'type':cr.type, 'x':cr.x, 'y':cr.y, 'size':cr.size, 'arms':cr.arms, 'r':cr.r, 'g':cr.g, 'b':cr.b});		
 	}
 
 	// add current creature
