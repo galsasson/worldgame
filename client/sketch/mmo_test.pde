@@ -12,14 +12,19 @@ final int TYPE_SINEFISH = 0;
 final int TYPE_FASTFISH = 1;
 final int TYPE_AIRFIGHTER = 2;
 
+WordSpace wordSpace;
+Chat chat;
+
 void setup()
 {
   size(600, 400);
   colorMode(HSB, 360, 100, 100, 100);
   smooth();
-  frameRate(40);
+  frameRate(30);
   
   ocean = new Ocean();
+  chat = new ChatWindow();
+  wordSpace = new WordSpace(loadFont("Osaka-16.vlw"));
   
   creatures = new HashMap();
   
@@ -39,6 +44,8 @@ void draw()
   
   translate(-myCreature.getPosition().x+width/2, -myCreature.getPosition().y+height/2);
   ocean.draw();
+
+  wordSpace.display(myCreature.getPosition(), 400);
   
   Iterator i = creatures.entrySet().iterator();
   while(i.hasNext())
@@ -51,10 +58,22 @@ void draw()
     c.update();
     c.display();
   }
- 
+
+  chat.update();
+  chat.display(myCreature.getPosition().x-width/2, myCreature.getPosition().y+height/2);
+
   popMatrix();
   
 }
+
+void sendText()
+{
+  String str = new String(chat.getString());
+  chat.emptyString();
+  
+  wordSpace.addWord(new ChunkOfWords(myCreature.getPosition().get(), str, -1));
+}
+
 
 /**************************************************************************/
 /**************************************************************************/
@@ -325,6 +344,16 @@ class SineFish implements Creature
     return pos;
   }
 
+  public void setRotation(float r)
+  {
+    ang = r;
+  }
+
+  public float getRotation()
+  {
+    return ang;
+  }
+
   public void setUp(boolean is) { moveUp = is; }
   public boolean getUp() { return moveUp; }
   public void setRight(boolean is) { moveRight = is; }
@@ -528,6 +557,16 @@ class FastFish implements Creature
     pos = p;
   }
 
+  public void setRotation(float r)
+  {
+    ang = r;
+  }
+
+  public float getRotation()
+  {
+    return ang;
+  }
+
   public void setUp(boolean is) { moveUp = is; }
   public boolean getUp() { return moveUp; }
   public void setRight(boolean is) { moveRight = is; }
@@ -542,6 +581,8 @@ class FastFish implements Creature
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
+
+
 
 class Bubble
 {
@@ -609,6 +650,174 @@ class Bubble
 /****************************************************************************/
 /****************************************************************************/
 
+class ChatWindow
+{
+  String currentText;
+  PFont font;
+  
+  float tw;
+  int cursorCounter = 0;
+  
+  public ChatWindow()
+  {
+    currentText = "";
+    font = loadFont("Osaka-18.vlw");
+    textFont(font, 18);
+    cursorCounter = 0;
+    tw = 0;
+  }
+  
+  public void handleChar(char c)
+  {
+    if ((c >= 32 && key <= 126))
+      addString(String.fromCharCode(c));
+  }
+
+  public void deleteChar()
+  {
+    deleteChar();
+  }
+  
+  public String getString()
+  {
+    return currentText;
+  }
+  
+  public void emptyString()
+  {
+    currentText = "";
+    tw = textWidth(currentText);
+  }
+  
+  public void addString(String s)
+  {
+    if (currentText.length >= 80) 
+      return;
+
+    currentText = currentText + s;
+    tw = textWidth(currentText);
+  }
+  
+  public void deleteChar()
+  {
+    if (currentText.length() > 0)
+      currentText = currentText.substring(0, currentText.length()-1);
+    tw = textWidth(currentText);
+  }
+  
+  public void update()
+  {
+    cursorCounter++;
+    
+    if (cursorCounter > 60)
+      cursorCounter = 0;
+  }
+  
+  public void display(float x, float y)
+  {
+    
+    pushMatrix();
+    translate(x, y);
+    
+    textFont(font, 18);
+    strokeWeight(2);
+    stroke(0, 0, 100, 80);
+    fill(0, 0, 100, 20);
+    
+    rect(0, -25, width, 23, 5, 5, 5, 5);
+    fill(250);
+    text(currentText, 5, -7);
+    
+    /* draw cursor */
+    if (cursorCounter < 30)
+      line (tw+7, -20, tw+7, -6);
+      
+    popMatrix();
+  }
+}
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
+class ChunkOfWords
+{
+  PVector pos;  
+  String str;
+  int life;
+  
+  public ChunkOfWords(PVector p, String s, int l)
+  {
+    pos = p;
+    str = s;
+    life = l;
+  }
+  
+  public void display()
+  {
+    if (life==0)
+      return;
+    
+    if (life > 0) life--;
+    
+    fill(0, 0, 100, 50);
+    
+    pushMatrix();
+    translate(pos.x, pos.y);
+    text(str, 0, 0);
+    popMatrix();
+  }
+}
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
+
+class WordSpace
+{
+  ArrayList<ChunkOfWords> words;
+  PFont font;
+ 
+  public WordSpace(PFont f)
+  {
+    font = f;
+    words = new ArrayList<ChunkOfWords>();
+  }
+  
+  public void addWord(ChunkOfWords word)
+  {
+    words.add(word);
+    javascript.takeChunkOfWords(word);
+  }
+  
+  public void display(PVector p, float radius)
+  {
+    textFont(font, 16);
+
+    for (int i=0; i<words.size(); i++)
+    {
+      ChunkOfWords chunk = (ChunkOfWords)words.get(i);
+      if (chunk.pos.dist(p) < radius)
+        words.get(i).display();
+    }
+  }
+
+  public void askForData()
+  {
+  //  javascript.gimmeAllTheWords();
+  }
+
+  public void take(ArrayList<ChunkOfWords> chunks)
+  {
+    words = chunks;
+  }
+}
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
 interface Creature
 {
   void applyDrag(float c);
@@ -617,6 +826,8 @@ interface Creature
 
   void setPosition(PVector pos);
   PVector getPosition();
+  void setRotation(float ang);
+  float getRotation();
 
   void setUp(boolean up);
   boolean getUp();
@@ -638,12 +849,23 @@ interface JavaScript
   void keyPress(int id, int key);
   void keyRelease(int id, int key);
   void addNewCreature(int id, int type, float x, float y, int size, int arms, int r, int g, int b);
-  void updateSelfPosition(int id, float x, float y)
+  void updateSelfPosition(int id, float x, float y);
+  void gimmeAllTheWords();
+  void takeChunkOfWords(ChunkOfWords chunk);
 }
 
 JavaScript javascript = null;
 
-void setJavaScript(JavaScript js) { javascript = js; }
+void setJavaScript(JavaScript js)
+{ 
+  javascript = js;
+  javascript.gimmeAllTheWords();
+ }
+
+void serverNextFrame()
+{
+  draw();
+}
 
 void initSelf(int id, int type, int x, int y, int size, int arms, int r, int g, int b)
 {
@@ -660,6 +882,10 @@ void initSelf(int id, int type, int x, int y, int size, int arms, int r, int g, 
   // call server to add the creature
   addNewCreature(selfID, type, x, y, size, arms, r, g, b);
 
+
+  //wordSpace.askForData();
+  //javascript.gimmeAllTheWords();
+
   loop();
 }
 
@@ -668,17 +894,18 @@ void serverRemoveCreature(int id)
   creatures.remove(id);
 }
 
-void serverUpdateCreaturePos(int id, float x, float y)
+void serverUpdateCreaturePos(int id, float x, float y, float r)
 {
   Creature c = (Creature)creatures.get(id.toString());
   c.setPosition(new PVector(x, y));
+  c.setRotation(r);
 }
 
 void serverGimmeYourPosition()
 {
   Creature c = (Creature)creatures.get(selfID.toString());
 
-  updateSelfPosition(selfID, c.getPosition().x, c.getPosition().y);
+  updateSelfPosition(selfID, c.getPosition().x, c.getPosition().y, c.getRotation());
 }
 
 void serverAddNewCreature(int id, int type, float x, float y, int size, int arms, int r, int g, int b)
@@ -686,9 +913,9 @@ void serverAddNewCreature(int id, int type, float x, float y, int size, int arms
   console.log("adding new creature with id = ", id);
 
   if (type == TYPE_SINEFISH)
-    creatures.put(id, new SineFish(new PVector(x, y), size, arms, color(r, g, b)));
+    creatures.put(id.toString(), new SineFish(new PVector(x, y), size, arms, color(r, g, b)));
   else if (type == TYPE_FASTFISH)  
-    creatures.put(id, new FastFish(new PVector(x, y), size));
+    creatures.put(id.toString(), new FastFish(new PVector(x, y), size));
 }
 
 void serverKeyPressed(int id, int k)
@@ -721,6 +948,11 @@ void serverKeyReleased(int id, int k)
     c.setLeft(false);
 }
 
+void serverTakeData(ArrayList<ChunkOfWords> words)
+{
+  wordSpace.take(words);
+}
+
 void keyPressed()
 {
   Creature c = (Creature)creatures.get(selfID.toString());
@@ -732,6 +964,15 @@ void keyPressed()
         if (javascript != null) 
               javascript.keyPress(selfID, keyCode);
       }
+
+  if (keyCode == DOWN)
+  {
+    chat.deleteChar(8);
+  }
+  else if (keyCode == ENTER)
+    sendText();
+  else 
+    chat.handleChar(key);
 }
 
 void keyReleased()
@@ -739,7 +980,8 @@ void keyReleased()
   if (keyCode == UP ||
       keyCode == RIGHT ||
       keyCode == DOWN ||
-      keyCode == LEFT) {
+      keyCode == LEFT) 
+      {
         if (javascript != null) 
               javascript.keyRelease(selfID, keyCode);
       }

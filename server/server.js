@@ -1,4 +1,11 @@
 
+function Event(id, key, pressed)
+{
+	this.id = id;
+	this.key = key;
+	this.pressed = pressed;
+}
+
 function Creature()
 {
 	this.socket = null;
@@ -6,19 +13,21 @@ function Creature()
 	this.type = -1;
 	this.x = 0;
 	this.y = 0;
+	this.rotation = 0;
 	this.size = 0;
 	this.arms = 0;
 	this.r = 0;
 	this.g = 0;
 	this.b = 0;
 
-	this.init = function(id, socket, type, x, y, size, arms, r, g, b)
+	this.init = function(id, socket, type, x, y, rotation, size, arms, r, g, b)
 	{
 		this.id = id;
 		this.socket = socket;
 		this.type = type;
 		this.x = x;
 		this.y = y;
+		this.rotation = rotation;
 		this.size = size;
 		this.arms = arms;
 		this.r = r;
@@ -53,7 +62,9 @@ function httpHandler(req, res) {
 }
 
 var creatures = {};
+//var events = {};
 var clientsNum = 0;
+var frameNum = 0;
 
 app.listen(80);
 
@@ -65,7 +76,7 @@ io.sockets.on('connection', function(socket) {
 	newC.init(id, 
 		socket, 
 		Math.floor(Math.random()*2), 
-		0, 0, 
+		0, 0, 0,
 		Math.random()*5+5, 
 		Math.random()*20+5,
 		230, 20, 50);
@@ -148,6 +159,7 @@ io.sockets.on('connection', function(socket) {
 	socket.on('set_position', function(data) {
 		creatures[data.cid].x = data.x;
 		creatures[data.cid].y = data.y;
+		creatures[data.cid].rotation = data.rotation;
 
 		for (var c in creatures)
 		{
@@ -156,6 +168,19 @@ io.sockets.on('connection', function(socket) {
 	})
 
 });
+
+/*
+setInterval(function() {
+	if (creatures.length > 0)
+	{
+		frameNum++;
+		for (var c in creatures)
+		{
+			creatures[c].socket.emit('next_frame', {'frame':frameNum});
+		}
+	}
+}, 30);
+*/
 
 
 
