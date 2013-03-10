@@ -6,6 +6,14 @@ function Event(id, key, pressed)
 	this.pressed = pressed;
 }
 
+function ChunkOfWords(_cid, _string, _x, _y)
+{
+	this.cid = _cid;
+	this.string = _string;
+	this.x = _x;
+	this.y = _y;
+}
+
 function Creature()
 {
 	this.socket = null;
@@ -62,9 +70,12 @@ function httpHandler(req, res) {
 }
 
 var creatures = {};
+var words = [];
 //var events = {};
 var clientsNum = 0;
 var frameNum = 0;
+
+words.push(new ChunkOfWords(0, "hello from server", 0, 0));
 
 app.listen(80);
 
@@ -165,7 +176,21 @@ io.sockets.on('connection', function(socket) {
 		{
 			creatures[c].socket.emit('update_pos', data);
 		}
-	})
+	});
+
+	socket.on('new_word', function(data) {
+//		var chunk = new ChunkOfWords(data.chunk.cid, data.chunk.string, data.x, data.y);
+		words.push(data.chunk);
+
+		for (var c in creatures)
+		{
+			creatures[c].socket.emit('take_word', {'chunk':data.chunk});
+		}
+	});
+
+	socket.on('get_all_words', function(data) {
+		creatures[data.cid].socket.emit('take_words', {'chunks':words});
+	});
 
 });
 

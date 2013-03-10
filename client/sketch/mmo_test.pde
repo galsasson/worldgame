@@ -70,8 +70,10 @@ void sendText()
 {
   String str = new String(chat.getString());
   chat.emptyString();
+
+  javascript.takeChunkOfWords(new ChunkOfWords(myCreature.getPosition().get(), str, -1));
   
-  wordSpace.addWord(new ChunkOfWords(myCreature.getPosition().get(), str, -1));
+  //wordSpace.addWord(new ChunkOfWords(myCreature.getPosition().get(), str, -1));
 }
 
 
@@ -673,11 +675,6 @@ class ChatWindow
       addString(String.fromCharCode(c));
   }
 
-  public void deleteChar()
-  {
-    deleteChar();
-  }
-  
   public String getString()
   {
     return currentText;
@@ -805,12 +802,12 @@ class WordSpace
 
   public void askForData()
   {
-  //  javascript.gimmeAllTheWords();
+    javascript.gimmeAllTheWords();
   }
 
   public void take(ArrayList<ChunkOfWords> chunks)
   {
-    words = chunks;
+    words.addAll(chunks);
   }
 }
 
@@ -859,7 +856,7 @@ JavaScript javascript = null;
 void setJavaScript(JavaScript js)
 { 
   javascript = js;
-  javascript.gimmeAllTheWords();
+  wordSpace.askForData();
  }
 
 void serverNextFrame()
@@ -881,10 +878,6 @@ void initSelf(int id, int type, int x, int y, int size, int arms, int r, int g, 
 
   // call server to add the creature
   addNewCreature(selfID, type, x, y, size, arms, r, g, b);
-
-
-  //wordSpace.askForData();
-  //javascript.gimmeAllTheWords();
 
   loop();
 }
@@ -953,6 +946,11 @@ void serverTakeData(ArrayList<ChunkOfWords> words)
   wordSpace.take(words);
 }
 
+void deleteKey()
+{
+  chat.deleteChar();
+}
+
 void keyPressed()
 {
   Creature c = (Creature)creatures.get(selfID.toString());
@@ -967,7 +965,7 @@ void keyPressed()
 
   if (keyCode == DOWN)
   {
-    chat.deleteChar(8);
+    chat.deleteChar();
   }
   else if (keyCode == ENTER)
     sendText();
