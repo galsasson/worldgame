@@ -14,34 +14,21 @@ function ChunkOfWords(_cid, _string, _x, _y)
 	this.y = _y;
 }
 
-function Creature()
+function Creature(id, socket, type, xPos, yPos, xVel, yVel, rotation, size, arms, h, s, b)
 {
-	this.socket = null;
-	this.id = -1;
-	this.type = -1;
-	this.x = 0;
-	this.y = 0;
-	this.rotation = 0;
-	this.size = 0;
-	this.arms = 0;
-	this.r = 0;
-	this.g = 0;
-	this.b = 0;
-
-	this.init = function(id, socket, type, x, y, rotation, size, arms, r, g, b)
-	{
-		this.id = id;
-		this.socket = socket;
-		this.type = type;
-		this.x = x;
-		this.y = y;
-		this.rotation = rotation;
-		this.size = size;
-		this.arms = arms;
-		this.r = r;
-		this.g = g;
-		this.b = b;
-	}
+	this.socket = socket;
+	this.id = id;
+	this.type = type;
+	this.x = xPos;
+	this.y = yPos;
+	this.xVel = xVel;
+	this.yVel = yVel;
+	this.rotation = rotation;
+	this.size = size;
+	this.arms = arms;
+	this.h = h;
+	this.s = s;
+	this.b = b;
 }
 
 var app = require('http').createServer(httpHandler),
@@ -83,14 +70,18 @@ io.sockets.on('connection', function(socket) {
 
 	var id = clientsNum++;
 
-	var newC = new Creature();
-	newC.init(id, 
-		socket, 
-		Math.floor(Math.random()*2), 
-		0, 0, 0,
-		Math.random()*5+5, 
-		Math.random()*20+5,
-		230, 20, 50);
+	var cX;
+	var cType = Math.floor(Math.random()*3);
+
+	if (cType == 0 || cType == 1)
+		cX = 500;
+	else
+		cX = -500;
+
+	var newC = new Creature(id, socket, cType, cX, Math.random()*100-50, 0, 0, 0, Math.random()*20+5, Math.random()*20+5, 
+						Math.floor(Math.random()*360),
+						50, 100);
+
 
 	socket.emit('init', { 
 		'cid' : newC.id,
@@ -99,8 +90,8 @@ io.sockets.on('connection', function(socket) {
 		'y' : newC.y,
 		'size' : newC.size,
 		'arms' : newC.arms,
-		'r' : newC.r,
-		'g' : newC.g,
+		'h' : newC.h,
+		's' : newC.s,
 		'b' : newC.b
 	});
 
@@ -111,7 +102,7 @@ io.sockets.on('connection', function(socket) {
 	{
 		var cr = creatures[c];
 		socket.emit('new_creature', 
-			{'cid':cr.id, 'type':cr.type, 'x':cr.x, 'y':cr.y, 'size':cr.size, 'arms':cr.arms, 'r':cr.r, 'g':cr.g, 'b':cr.b});		
+			{'cid':cr.id, 'type':cr.type, 'x':cr.x, 'y':cr.y, 'size':cr.size, 'arms':cr.arms, 'h':cr.h, 's':cr.s, 'b':cr.b});		
 	}
 
 	// add current creature
@@ -167,14 +158,16 @@ io.sockets.on('connection', function(socket) {
 		}
 	});
 
-	socket.on('set_position', function(data) {
-		creatures[data.cid].x = data.x;
-		creatures[data.cid].y = data.y;
+	socket.on('set_params', function(data) {
+		creatures[data.cid].x = data.xPos;
+		creatures[data.cid].y = data.yPos;
+		creatures[data.cid].xVel = data.xVel;
+		creatures[data.cid].yVel = data.yVel;
 		creatures[data.cid].rotation = data.rotation;
 
 		for (var c in creatures)
 		{
-			creatures[c].socket.emit('update_pos', data);
+			creatures[c].socket.emit('update_params', data);
 		}
 	});
 

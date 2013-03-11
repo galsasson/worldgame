@@ -1,6 +1,5 @@
 //import java.util.Iterator;
 
-Ocean ocean;
 Creature myCreature = null;
 HashMap creatures;
 
@@ -12,19 +11,24 @@ final int TYPE_SINEFISH = 0;
 final int TYPE_FASTFISH = 1;
 final int TYPE_AIRFIGHTER = 2;
 
+World world;
 WordSpace wordSpace;
 Chat chat;
 
+PImage texture;
+
 void setup()
 {
-  size(600, 400);
+  size(640, 480);
   colorMode(HSB, 360, 100, 100, 100);
   smooth();
   frameRate(30);
   
-  ocean = new Ocean();
+  //texture = loadImage("sketch/data/fabric.jpg");
+
+  world = new World();
   chat = new ChatWindow();
-  wordSpace = new WordSpace(loadFont("Osaka-16.vlw"));
+  wordSpace = new WordSpace(loadFont("sketch/Osaka-16.vlw"));
   
   creatures = new HashMap();
   
@@ -40,11 +44,13 @@ void draw()
     return;
   }
   
+  background(0);
+
   pushMatrix();
   
   translate(-myCreature.getPosition().x+width/2, -myCreature.getPosition().y+height/2);
-  ocean.draw();
 
+  world.draw();
   wordSpace.display(myCreature.getPosition(), 400);
   
   Iterator i = creatures.entrySet().iterator();
@@ -62,8 +68,7 @@ void draw()
   chat.update();
   chat.display(myCreature.getPosition().x-width/2, myCreature.getPosition().y+height/2);
 
-  popMatrix();
-  
+  popMatrix();  
 }
 
 void sendText()
@@ -74,38 +79,6 @@ void sendText()
   javascript.takeChunkOfWords(new ChunkOfWords(myCreature.getPosition().get(), str, -1));
   
   //wordSpace.addWord(new ChunkOfWords(myCreature.getPosition().get(), str, -1));
-}
-
-
-/**************************************************************************/
-/**************************************************************************/
-/**************************************************************************/
-
-class Ocean
-{
-  ArrayList<PVector> points;
-  
-  public Ocean()
-  {
-    points = new ArrayList();
-    
-    for (int i=0; i<250; i++)
-    {
-      points.add(new PVector(random(2000)-1000, random(2000)-1000));
-    }
-  }
-  
-  public void draw()
-  {
-    background(231, 100, 20);
-    fill(0, 0, 100, 20);
-    
-    for (int i=0; i<points.size(); i++)
-    {
-      ellipse(points.get(i).x, points.get(i).y, 2, 2);
-    }
-  }
-  
 }
 
 /**************************************************************************/
@@ -346,6 +319,16 @@ class SineFish implements Creature
     return pos;
   }
 
+  public PVector getVelocity()
+  {
+    return vel;
+  }
+
+  public void setVelocity(PVector v)
+  {
+    vel = v;
+  }
+
   public void setRotation(float r)
   {
     ang = r;
@@ -388,19 +371,23 @@ class FastFish implements Creature
   float t;
   float flapSpeed;
   
-  ArrayList<Bubble> bubbles;
+  ArrayList<FastBubble> bubbles;
+
+  color col;
 
   boolean moveUp = false;
   boolean moveDown = false;
   boolean moveRight = false;
   boolean moveLeft = false;
   
-  public FastFish(PVector pos, float initSize)
+  public FastFish(PVector pos, float initSize, color c)
   {
     this.pos = pos;
     this.vel = new PVector(0, 0);
     this.acc = new PVector(0, 0);
     
+    col = c;
+
     size = initSize;
     mass = size*2;
     
@@ -408,7 +395,7 @@ class FastFish implements Creature
     angVel = 0;
     angAcc = 0;
     
-    bubbles = new ArrayList<Bubble>();
+    bubbles = new ArrayList<FastBubble>();
     
     flapSpeed = 0.1;
     t=0;
@@ -454,7 +441,7 @@ class FastFish implements Creature
       PVector angVec = new PVector(cos(ang), sin(ang));
       PVector initSpeed = PVector.mult(angVec, random(2,4));
       angAcc = -PI/200;
-      bubbles.add(new Bubble(PVector.add(pos, s), initSpeed, random(2, 8)));
+      bubbles.add(new FastBubble(PVector.add(pos, s), initSpeed, random(2, 8)));
     }
 
     if (moveRight)
@@ -466,7 +453,7 @@ class FastFish implements Creature
       PVector angVec = new PVector(cos(ang+PI), sin(ang+PI));
       PVector initSpeed = PVector.mult(angVec, random(2,4));
       angAcc = PI/200;
-      bubbles.add(new Bubble(PVector.add(pos, s), initSpeed, random(2, 8)));
+      bubbles.add(new FastBubble(PVector.add(pos, s), initSpeed, random(2, 8)));
     }
 
     vel.add(acc);
@@ -486,14 +473,14 @@ class FastFish implements Creature
     
     for (int i=bubbles.size()-1; i>=0; i--)
     {
-      Bubble b = (Bubble)bubbles.get(i);
+      FastBubble b = (FastBubble)bubbles.get(i);
       if (!b.isAlive())
       {
         bubbles.remove(i);
         continue;
       }
       
-      b.applyForce(new PVector(0, -0.03));
+      b.applyForce(new PVector(-0.03, 0));
       b.update();
     }
   }
@@ -508,7 +495,7 @@ class FastFish implements Creature
     // draw head
     float yOffset = -23;
 
-    fill(50, 100, 100, 100);
+    fill(col);//50, 100, 100, 100);
     noStroke();
     ellipse(-10, yOffset, 5, 5);
     ellipse(10, yOffset, 5, 5);
@@ -544,7 +531,7 @@ class FastFish implements Creature
     
     for (int i=0; i<bubbles.size(); i++)
     {
-      ((Bubble)bubbles.get(i)).draw();
+      ((FastBubble)bubbles.get(i)).draw();
     }
 
   }
@@ -557,6 +544,16 @@ class FastFish implements Creature
   public void setPosition(PVector p)
   {
     pos = p;
+  }
+
+  public PVector getVelocity()
+  {
+    return vel;
+  }
+
+  public void setVelocity(PVector v)
+  {
+    vel = v;
   }
 
   public void setRotation(float r)
@@ -586,7 +583,7 @@ class FastFish implements Creature
 
 
 
-class Bubble
+class FastBubble
 {
   PVector pos;
   PVector vel;
@@ -596,7 +593,7 @@ class Bubble
   
   float t;
   
-  public Bubble(PVector pos, PVector vel, float size)
+  public FastBubble(PVector pos, PVector vel, float size)
   {
     this.pos = pos;
     this.vel = vel;
@@ -627,7 +624,7 @@ class Bubble
   
   public boolean isAlive()
   {
-    if (pos.y < -1000)
+    if (pos.x < 0)
           return false;
           
     return true;
@@ -642,7 +639,7 @@ class Bubble
     stroke(0, 0, 100, 80);
     strokeWeight(1);
     
-    ellipse(0+sin(t)*2, 0, size, size);
+    ellipse(0, 0+sin(t)*2, size, size);
     
     popMatrix();
   }
@@ -663,7 +660,7 @@ class ChatWindow
   public ChatWindow()
   {
     currentText = "";
-    font = loadFont("Osaka-18.vlw");
+    font = loadFont("sketch/Osaka-18.vlw");
     textFont(font, 18);
     cursorCounter = 0;
     tw = 0;
@@ -757,7 +754,7 @@ class ChunkOfWords
     
     if (life > 0) life--;
     
-    fill(0, 0, 100, 50);
+    fill(0, 0, 50, 50);
     
     pushMatrix();
     translate(pos.x, pos.y);
@@ -815,6 +812,332 @@ class WordSpace
 /****************************************************************************/
 /****************************************************************************/
 
+// When AirFlyer goes into water, she loses control to the sea creature.
+
+class AirFighter implements Creature {
+
+  int wFly = 8;           //width of Center body
+  int hFly = 25;          //height of Center body
+  float wings = 10;       //Amount of wings
+  float rotation = 0.06; //how big is the flap
+  float c = 205;          //color gray scale  
+  float mass;             //weight of fighter
+  float flapW;             //wing flapW
+  int flapDir;            //wing direction
+  float flapAmount;       //flap counter
+
+  boolean moveUp = false;
+  boolean moveLeft = false;
+  boolean moveDown = false;
+  boolean moveRight = false;
+
+  PVector location;
+  PVector wing;
+  PVector velocity;
+  PVector acceleration;
+
+  float direction = 0;
+
+  AirFighter(float m, float x, float y) {
+    mass = m;
+    location = new PVector(x, y);
+    wing = new PVector(0, 0);
+    velocity = new PVector(0, 0);
+    acceleration = new PVector(0, 0);
+    flapW=0;
+    flapDir=1;
+    flapAmount=0.004;
+  }
+
+  void applyDrag(float c) {
+  }
+
+  public void update() { 
+    flap();
+    assolacion();
+
+    velocity.add(acceleration);
+    location.add(velocity);
+    velocity.mult(0.95);
+    acceleration.mult(0);
+
+    if (moveUp) {goStrait();}
+    if (moveLeft) {rotateLeft();}
+    if (moveDown) {goStrait();}
+    if (moveRight){rotateRight();}
+  }
+
+  public void display() {
+    //Body Air Fighter
+    strokeWeight(2);
+    stroke(0);
+    fill(0);
+
+    pushMatrix();
+    translate(location.x, location.y);
+    //rotate(heading);
+    rotate(radians(direction));
+
+    //body
+    ellipse(0, 0, wFly, hFly);
+    ellipse(0, 12, wFly-6, hFly);  
+
+    //Right Wing AirFighter
+    pushMatrix();
+    translate(wing.x, wing.y);
+    rotate(rotation+flapW);
+    for (float i=wings; i>0; i--) {
+      fill(c-i*20);
+      rotate(rotation+flapW);
+      bezier(32, 0, -45+i*5, 0, 30-i*2, -i*4, 30+i*6, -i*5);
+      fill(255, 0, 0);
+    }
+    popMatrix();
+
+    //Left Wing AirFighter
+    pushMatrix();
+    translate(wing.x, wing.y);
+    rotate(-rotation-flapW);
+    for (float i=wings; i>0; i--) {
+      fill(c-i*20);
+      rotate(-rotation-flapW);
+      bezier(-32, 0, 45-i*5, 0, -30+i*2, -i*4, -30-i*6, -i*5);
+    }
+    popMatrix();
+    popMatrix();
+  }
+
+  public PVector getPosition() {
+    return location;
+  }
+
+  public void setPosition(PVector p)
+  {
+    location = p;
+  }
+
+  public float getRotation()
+  {
+    return radians(direction);
+  }
+  
+  public void setRotation(float r)
+  {
+    direction = degrees(r);
+  }
+
+  void applyForce(PVector force) {
+    PVector f = PVector.div(force, mass);
+    acceleration.add(f);
+  }
+
+  void assolacion() {
+    PVector move = new PVector(0, 0.002*sin(radians(frameCount*5))); //location+raduis*sin(radians(angle))
+    applyForce(move);
+  }
+
+  void flap() {
+    if (flapDir==1 && flapW>0.05) {
+      flapDir=-1;
+    } 
+    if (flapDir==-1 && flapW < -0.05) {
+      flapDir=1;
+    }
+    if (flapDir<0) {
+      flapW += flapAmount*0.6*flapDir;
+    } 
+    else {
+      flapW += flapAmount*flapDir;
+    }
+  }
+
+  void rotateLeft() {
+    direction--;
+    PVector force = new PVector(cos(radians(direction)-PI/2), sin(radians(direction)-PI/2));// PVector.fromAngle(radians(direction)-PI/2);
+    applyForce(force);
+  }
+  void rotateRight() {
+    direction++;
+    PVector force = new PVector(cos(radians(direction)-PI/2), sin(radians(direction)-PI/2));//PVector.fromAngle(radians(direction)-PI/2);
+    applyForce(force);
+  }
+  void goStrait() {
+    PVector force = new PVector(cos(radians(direction)-PI/2), sin(radians(direction)-PI/2));//PVector.fromAngle(radians(direction)-PI/2);
+    applyForce(force);
+  }
+
+  void underwater() {
+    // give control to sea creature
+  }
+
+  public PVector getVelocity()
+  {
+    return velocity;
+  }
+
+  public void setVelocity(PVector vel)
+  {
+    velocity = vel;
+  }
+
+  public void setUp(boolean is) { moveUp = is; }
+  public boolean getUp() { return moveUp; }
+  public void setRight(boolean is) { moveRight = is; }
+  public boolean getRight() { return moveRight; }
+  public void setDown(boolean is) { moveDown = is; }
+  public boolean getDown() { return moveDown; }
+  public void setLeft(boolean is) { moveLeft = is; }
+  public boolean getLeft() { return moveLeft; }
+}
+
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
+class Bubble {
+  PVector location;
+  PVector velocity;
+
+  PImage img;
+
+  Bubble(PVector p, int num) {
+    location = p;//new PVector(random(1050, 1950), random(2950));
+    velocity = new PVector(0.1, -0.3);
+    img = loadImage("sketch/data/bubble"+num+".png");
+  }
+
+  void update() {
+    checkEdges();
+    location.add(velocity);
+  }
+
+  void checkEdges() {
+    if ((location.x>965) || (location.x<35)) {
+      velocity.x *= -1;
+    } 
+    if ((location.y>1465) || (location.y<-1465)) {
+      velocity.y *= -1;
+    }
+  }
+
+  void draw() {
+    image(img, location.x, location.y);
+  }
+}
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
+class Cloud {
+  PVector location;
+  PVector velocity;
+
+  PImage img;
+
+  Cloud(PVector p, int num) {
+    location = p;
+    velocity = new PVector(1,0);
+    img = loadImage("sketch/data/cloud"+num+".png");
+  }
+
+  void update() {
+    checkEdges();
+
+    location.add(velocity);
+  }
+
+  void checkEdges() {
+    if ((location.x>-300) || (location.x<-950)) {
+      velocity.x *= -1;
+    } 
+  }
+
+  void draw() {
+    image(img, location.x, location.y);
+  }
+}
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
+class Bubbles {
+  ArrayList<Bubble> bubbles; //location
+
+  Bubbles() {
+    bubbles = new ArrayList();
+
+
+    for (int i=0; i<100; i++) {
+      bubbles.add(new Bubble(new PVector(random(200, 800), random(-1450, 1450)), int(random(1, 5))));
+    }
+  }
+
+  void draw() {
+    for (int i=0; i<bubbles.size(); i++) {
+      bubbles.get(i).update();
+      bubbles.get(i).draw();     
+    }
+  }
+}
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
+class Clouds {
+  ArrayList<Cloud> clouds; //location
+
+  Clouds() {
+    clouds = new ArrayList();
+
+
+    for (int i=0; i<30; i++) {
+      clouds.add(new Cloud(new PVector(random(-800, -400), random(-1450, 1450)), int(random(1, 4))));
+    }
+  }
+
+  void draw() {
+    for (int i=0; i<clouds.size(); i++) {
+      clouds.get(i).update();
+      clouds.get(i).draw();     
+    }
+  }
+}
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
+// take Gal's world and put it here. Add your fighter to his world.
+class World 
+{
+  Clouds coulds;
+  Bubbles bubbles;
+
+  public World() {
+    clouds = new Clouds();
+    bubbles = new Bubbles();
+  }
+
+  public void draw() {
+    noStroke();
+    fill(213, 24, 99);
+    rect(-1000, -1500, 1000, 3000);
+    fill(213, 83, 32);
+    rect(0, -1500, 1000, 3000);
+
+    bubbles.draw();
+    clouds.draw();
+  }
+}
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
 interface Creature
 {
   void applyDrag(float c);
@@ -846,7 +1169,7 @@ interface JavaScript
   void keyPress(int id, int key);
   void keyRelease(int id, int key);
   void addNewCreature(int id, int type, float x, float y, int size, int arms, int r, int g, int b);
-  void updateSelfPosition(int id, float x, float y);
+  void updateSelfParams(int id, float xPos, float yPos, float xVel, float yVel, float rot);
   void gimmeAllTheWords();
   void takeChunkOfWords(ChunkOfWords chunk);
 }
@@ -864,20 +1187,22 @@ void serverNextFrame()
   draw();
 }
 
-void initSelf(int id, int type, int x, int y, int size, int arms, int r, int g, int b)
+void initSelf(int id, int type, float x, float y, int size, int arms, int h, int s, int b)
 {
   selfID = id;
 
   if (type == TYPE_SINEFISH)
-    creatures.put(selfID.toString(), new SineFish(new PVector(x, y), size, arms, color(r, g, b)));
+    creatures.put(selfID.toString(), new SineFish(new PVector(x, y), size, arms, color(h, s, b)));
   else if (type == TYPE_FASTFISH)  
-    creatures.put(selfID.toString(), new FastFish(new PVector(x, y), size));
+    creatures.put(selfID.toString(), new FastFish(new PVector(x, y), size, color(h,s,b)));
+  else if (type == TYPE_AIRFIGHTER)
+    creatures.put(selfID.toString(), new AirFighter(5, x, y));
 
   myCreature = (Creature)creatures.get(selfID.toString());
   console.log("myCreature = " + myCreature);
 
   // call server to add the creature
-  addNewCreature(selfID, type, x, y, size, arms, r, g, b);
+  javascript.addNewCreature(selfID, type, x, y, size, arms, h, s, b);
 
   loop();
 }
@@ -887,28 +1212,32 @@ void serverRemoveCreature(int id)
   creatures.remove(id);
 }
 
-void serverUpdateCreaturePos(int id, float x, float y, float r)
+void serverUpdateCreatureParams(int id, float xPos, float yPos, float xVel, float yVel, float r)
 {
   Creature c = (Creature)creatures.get(id.toString());
-  c.setPosition(new PVector(x, y));
+  c.setPosition(new PVector(xPos, yPos));
+  c.setVelocity(new PVector(xVel, yVel));
   c.setRotation(r);
 }
 
-void serverGimmeYourPosition()
+void serverGimmeYourParams()
 {
   Creature c = (Creature)creatures.get(selfID.toString());
 
-  updateSelfPosition(selfID, c.getPosition().x, c.getPosition().y, c.getRotation());
+  javascript.updateSelfParams(selfID, c.getPosition().x, c.getPosition().y, c.getVelocity().x, c.getVelocity().y, c.getRotation());
 }
 
-void serverAddNewCreature(int id, int type, float x, float y, int size, int arms, int r, int g, int b)
+void serverAddNewCreature(int id, int type, float x, float y, int size, int arms, int h, int s, int b)
 {
   console.log("adding new creature with id = ", id);
 
   if (type == TYPE_SINEFISH)
-    creatures.put(id.toString(), new SineFish(new PVector(x, y), size, arms, color(r, g, b)));
+    creatures.put(id.toString(), new SineFish(new PVector(x, y), size, arms, color(h, s, b)));
   else if (type == TYPE_FASTFISH)  
-    creatures.put(id.toString(), new FastFish(new PVector(x, y), size));
+    creatures.put(id.toString(), new FastFish(new PVector(x, y), size, color(h,s,b)));
+  else if (type == TYPE_AIRFIGHTER)
+    creatures.put(id.toString(), new AirFighter(5, x, y));
+
 }
 
 void serverKeyPressed(int id, int k)
@@ -963,11 +1292,7 @@ void keyPressed()
               javascript.keyPress(selfID, keyCode);
       }
 
-  if (keyCode == DOWN)
-  {
-    chat.deleteChar();
-  }
-  else if (keyCode == ENTER)
+  if (keyCode == ENTER)
     sendText();
   else 
     chat.handleChar(key);

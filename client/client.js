@@ -25,18 +25,18 @@ function initClient()
  	socket.on('init', function(data) {
  		mySid = data.cid;
 		console.log("client ID: " + mySid);
-		pjs.initSelf(mySid, data.type, data.x, data.y, data.size, data.arms, data.r, data.g, data.b);
 		pjs.setJavaScript(parent);
+		pjs.initSelf(mySid, data.type, data.x, data.y, data.size, data.arms, data.h, data.s, data.b);
 	});
 
 	document.onkeydown = function(e)
-{
-	if (e.keyCode == 8)
 	{
-		pjs.deleteKey();
-		return false;
+		if (e.keyCode == 8)
+		{
+			pjs.deleteKey();
+			return false;
+		}
 	}
-}
 
 
 	socket.on('key_press', function (data) {
@@ -48,7 +48,7 @@ function initClient()
 	});
 
 	socket.on('new_creature', function (data) {
-		pjs.serverAddNewCreature(data.cid, data.type, data.x, data.y, data.size, data.arms, data.r, data.g, data.b);
+		pjs.serverAddNewCreature(data.cid, data.type, data.x, data.y, data.size, data.arms, data.h, data.s, data.b);
 	});
 
 	socket.on('del_creature', function (data) {
@@ -56,8 +56,8 @@ function initClient()
 		pjs.serverRemoveCreature(data.cid);
 	});
 
-	socket.on('update_pos', function (data) {
-		pjs.serverUpdateCreaturePos(data.cid, data.x, data.y, data.rotation);
+	socket.on('update_params', function (data) {
+		pjs.serverUpdateCreatureParams(data.cid, data.xPos, data.yPos, data.xVel, data.yVel, data.rotation);
 	});
 
 	socket.on('next_frame', function (data) {
@@ -83,8 +83,8 @@ function initClient()
 	});
 
 	setInterval(function() {
-		pjs.serverGimmeYourPosition();
-	}, 2000);
+		pjs.serverGimmeYourParams();
+	}, 250);
 }
 
 function gimmeAllTheWords()
@@ -110,9 +110,9 @@ function keyRelease(cid, key)
 	socket.emit('key_release', {'cid':cid, 'key' : key} );
 }
 
-function updateSelfPosition(cid, x, y, rotation)
+function updateSelfParams(cid, xPos, yPos, xVel, yVel, rotation)
 {
-	socket.emit('set_position', {'cid':cid, 'x':x, 'y':y, 'rotation':rotation});
+	socket.emit('set_params', {'cid':cid, 'xPos':xPos, 'yPos':yPos, 'xVel':xVel, 'yVel':yVel, 'rotation':rotation});
 };
 
 function addNewCreature(cid, type, x, y, size, arms, r, g, b)
@@ -140,22 +140,6 @@ window.onload = function() {
 	setTimeout(initClient, 2000);
 };
 
-
-//$(function(){
-    /*
-     * this swallows backspace keys on any non-input element.
-     * stops backspace -> back
-     */
-    // var rx = /INPUT|SELECT|TEXTAREA/i;
-
-    // document.bind("keydown keypress", function(e){
-    //     if( e.which == 8 ){ // 8 == backspace
-    //         if(!rx.test(e.target.tagName) || e.target.disabled || e.target.readOnly ){
-    //             e.preventDefault();
-    //         }
-    //     }
-    // });
-//});
 
 
 
