@@ -84,7 +84,7 @@ function initClient()
 
 	setInterval(function() {
 		pjs.serverGimmeYourParams();
-	}, 300);
+	}, 250);
 }
 
 function gimmeAllTheWords()
