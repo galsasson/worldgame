@@ -84,7 +84,7 @@ function initClient()
 
 	setInterval(function() {
 		pjs.serverGimmeYourParams();
-	}, 250);
+	}, 300);
 }
 
 function gimmeAllTheWords()
@@ -115,7 +115,7 @@ function updateSelfParams(cid, xPos, yPos, xVel, yVel, rotation)
 	socket.emit('set_params', {'cid':cid, 'xPos':xPos, 'yPos':yPos, 'xVel':xVel, 'yVel':yVel, 'rotation':rotation});
 };
 
-function addNewCreature(cid, type, x, y, size, arms, r, g, b)
+function addNewCreature(cid, type, x, y, size, arms, h, s, b)
 {
 	socket.emit('new_creature',
 		{
@@ -125,8 +125,8 @@ function addNewCreature(cid, type, x, y, size, arms, r, g, b)
 			'y':y,
 			'size':size,
 			'arms':arms,
-			'r':r,
-			'g':g,
+			'h':h,
+			's':s,
 			'b':b
 		});
 };

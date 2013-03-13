@@ -70,15 +70,22 @@ io.sockets.on('connection', function(socket) {
 
 	var id = clientsNum++;
 
-	var cX;
-	var cType = Math.floor(Math.random()*3);
+	var cY;
+	var arms, mass;
+	var cType = clientsNum%3;
 
-	if (cType == 0 || cType == 1)
-		cX = 500;
-	else
-		cX = -500;
+	if (cType == 0 || cType == 1) {
+		mass = Math.random()*20+5;
+		arms = Math.floor(Math.random()*20)+5;		
+		cY = 2500;
+	}
+	else {
+		mass = 9;
+		arms = Math.floor(Math.random()*11)+4;
+		cY = 1000;
+	}
 
-	var newC = new Creature(id, socket, cType, cX, Math.random()*100-50, 0, 0, 0, Math.random()*20+5, Math.random()*20+5, 
+	var newC = new Creature(id, socket, cType, 1450+Math.random()*100, cY, 0, 0, 0, mass, arms, 
 						Math.floor(Math.random()*360),
 						50, 100);
 

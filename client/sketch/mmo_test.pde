@@ -1,6 +1,6 @@
-//import java.util.Iterator;
-
-Creature myCreature = null;
+/* @pjs font1=sketch/Osaka-18.vlw,sketch/Osaka-16.vlw */
+ 
+ reature myCreature = null;
 HashMap creatures;
 
 int selfID = -1;
@@ -12,6 +12,8 @@ final int TYPE_FASTFISH = 1;
 final int TYPE_AIRFIGHTER = 2;
 
 World world;
+Clouds clouds;
+Bubbles bubbles;
 WordSpace wordSpace;
 Chat chat;
 
@@ -19,16 +21,17 @@ PImage texture;
 
 void setup()
 {
-  size(640, 480);
+  size(900, 400);
   colorMode(HSB, 360, 100, 100, 100);
   smooth();
-  frameRate(30);
+  frameRate(40);
   
-  //texture = loadImage("sketch/data/fabric.jpg");
-
   world = new World();
+  clouds = new Clouds(3000, 2000);
+  bubbles = new Bubbles(3000, 1000);
+
   chat = new ChatWindow();
-  wordSpace = new WordSpace(loadFont("sketch/Osaka-16.vlw"));
+  wordSpace = new WordSpace(loadFont("sketch/Osaka-16.vlw", 16));
   
   creatures = new HashMap();
   
@@ -51,7 +54,10 @@ void draw()
   translate(-myCreature.getPosition().x+width/2, -myCreature.getPosition().y+height/2);
 
   world.draw();
-  wordSpace.display(myCreature.getPosition(), 400);
+  clouds.draw();
+  bubbles.draw();
+
+  wordSpace.display(myCreature.getPosition(), 500);
   
   Iterator i = creatures.entrySet().iterator();
   while(i.hasNext())
@@ -480,7 +486,7 @@ class FastFish implements Creature
         continue;
       }
       
-      b.applyForce(new PVector(-0.03, 0));
+      b.applyForce(new PVector(0, -0.03));
       b.update();
     }
   }
@@ -624,7 +630,7 @@ class FastBubble
   
   public boolean isAlive()
   {
-    if (pos.x < 0)
+    if (pos.y < 1900)
           return false;
           
     return true;
@@ -639,7 +645,7 @@ class FastBubble
     stroke(0, 0, 100, 80);
     strokeWeight(1);
     
-    ellipse(0, 0+sin(t)*2, size, size);
+    ellipse(0+sin(t)*2, 0, size, size);
     
     popMatrix();
   }
@@ -817,8 +823,8 @@ class WordSpace
 class AirFighter implements Creature {
 
   int wFly = 8;           //width of Center body
-  int hFly = 25;          //height of Center body
-  float wings = 10;       //Amount of wings
+  int hFly = 22;          //height of Center body
+  float wings;       //Amount of wings
   float rotation = 0.06; //how big is the flap
   float c = 205;          //color gray scale  
   float mass;             //weight of fighter
@@ -838,7 +844,8 @@ class AirFighter implements Creature {
 
   float direction = 0;
 
-  AirFighter(float m, float x, float y) {
+  AirFighter(float w, float m, float x, float y) {
+    wings = w;
     mass = m;
     location = new PVector(x, y);
     wing = new PVector(0, 0);
@@ -869,8 +876,8 @@ class AirFighter implements Creature {
 
   public void display() {
     //Body Air Fighter
-    strokeWeight(2);
-    stroke(0);
+    strokeWeight(1);
+    stroke(0,70);
     fill(0);
 
     pushMatrix();
@@ -879,15 +886,15 @@ class AirFighter implements Creature {
     rotate(radians(direction));
 
     //body
-    ellipse(0, 0, wFly, hFly);
-    ellipse(0, 12, wFly-6, hFly);  
+    ellipse(0, 0, wFly+wings/8, hFly+wings/10);
+    ellipse(0, 8, wFly-6+wings/8, hFly+wings/10);  
 
     //Right Wing AirFighter
     pushMatrix();
     translate(wing.x, wing.y);
     rotate(rotation+flapW);
     for (float i=wings; i>0; i--) {
-      fill(c-i*20);
+      fill(c-i*25,50+i*2);
       rotate(rotation+flapW);
       bezier(32, 0, -45+i*5, 0, 30-i*2, -i*4, 30+i*6, -i*5);
       fill(255, 0, 0);
@@ -899,7 +906,7 @@ class AirFighter implements Creature {
     translate(wing.x, wing.y);
     rotate(-rotation-flapW);
     for (float i=wings; i>0; i--) {
-      fill(c-i*20);
+      fill(c-i*25,50+i*2);
       rotate(-rotation-flapW);
       bezier(-32, 0, 45-i*5, 0, -30+i*2, -i*4, -30-i*6, -i*5);
     }
@@ -964,6 +971,7 @@ class AirFighter implements Creature {
   void goStrait() {
     PVector force = new PVector(cos(radians(direction)-PI/2), sin(radians(direction)-PI/2));//PVector.fromAngle(radians(direction)-PI/2);
     applyForce(force);
+    applyForce(force);
   }
 
   void underwater() {
@@ -998,31 +1006,55 @@ class AirFighter implements Creature {
 class Bubble {
   PVector location;
   PVector velocity;
-
+  PVector acceleration;
   PImage img;
-
-  Bubble(PVector p, int num) {
-    location = p;//new PVector(random(1050, 1950), random(2950));
-    velocity = new PVector(0.1, -0.3);
+  int w=2950; //weidth
+  int h=1900; //hight
+  
+  float scl;
+  
+  Bubble(int num) {
+    location = new PVector(random(w), random(h,h+950));
+    velocity = new PVector(0,0);
+    acceleration = new PVector();
     img = loadImage("sketch/data/bubble"+num+".png");
+    
+    scl = random(0.1,0.8);
   }
 
-  void update() {
-    checkEdges();
+  void applyForce(PVector force) {
+    acceleration.add(force);
+  }
+  void move() {
+    
+    applyForce(new PVector(random(-0.02,0.02),0));
+    applyForce(new PVector(0,-0.03));
+    
+    
+    
+    velocity.add(acceleration);
     location.add(velocity);
+    acceleration.mult(0);
+    velocity.mult(0.99);
   }
 
   void checkEdges() {
-    if ((location.x>965) || (location.x<35)) {
+    if ((location.x>w) || (location.x<35)) {
       velocity.x *= -1;
     } 
-    if ((location.y>1465) || (location.y<-1465)) {
-      velocity.y *= -1;
+
+    if (location.y<h-45) {
+    location.y=h+1100;
     }
   }
 
   void draw() {
-    image(img, location.x, location.y);
+    pushMatrix();
+    translate(location.x,location.y);
+    imageMode(CENTER);
+    scale(scl);
+    image(img,0,0 );
+    popMatrix();
   }
 }
 
@@ -1033,23 +1065,22 @@ class Bubble {
 class Cloud {
   PVector location;
   PVector velocity;
-
   PImage img;
+  int w=3000; //weidth
+  int h=1650; //hight
 
-  Cloud(PVector p, int num) {
-    location = p;
-    velocity = new PVector(1,0);
+  Cloud(int num) {
+    location = new PVector(random(w), random(h));
+    velocity = new PVector(random(0.05,0.5),0);
     img = loadImage("sketch/data/cloud"+num+".png");
   }
 
-  void update() {
-    checkEdges();
-
+  void move() {
     location.add(velocity);
   }
 
   void checkEdges() {
-    if ((location.x>-300) || (location.x<-950)) {
+    if ((location.x>=w) || (location.x<0)) {
       velocity.x *= -1;
     } 
   }
@@ -1066,19 +1097,20 @@ class Cloud {
 class Bubbles {
   ArrayList<Bubble> bubbles; //location
 
-  Bubbles() {
+  Bubbles(float x, float y) {
     bubbles = new ArrayList();
 
 
     for (int i=0; i<100; i++) {
-      bubbles.add(new Bubble(new PVector(random(200, 800), random(-1450, 1450)), int(random(1, 5))));
+      bubbles.add(new Bubble(int(random(1, 5))));
     }
   }
 
   void draw() {
     for (int i=0; i<bubbles.size(); i++) {
-      bubbles.get(i).update();
       bubbles.get(i).draw();     
+      bubbles.get(i).move();     
+      bubbles.get(i).checkEdges();     
     }
   }
 }
@@ -1090,19 +1122,20 @@ class Bubbles {
 class Clouds {
   ArrayList<Cloud> clouds; //location
 
-  Clouds() {
+  Clouds(float x, float y) {
     clouds = new ArrayList();
 
 
     for (int i=0; i<30; i++) {
-      clouds.add(new Cloud(new PVector(random(-800, -400), random(-1450, 1450)), int(random(1, 4))));
+      clouds.add(new Cloud(int(random(1, 4))));
     }
   }
 
   void draw() {
     for (int i=0; i<clouds.size(); i++) {
-      clouds.get(i).update();
       clouds.get(i).draw();     
+      clouds.get(i).move();     
+      clouds.get(i).checkEdges();     
     }
   }
 }
@@ -1112,25 +1145,84 @@ class Clouds {
 /****************************************************************************/
 
 // take Gal's world and put it here. Add your fighter to his world.
-class World 
-{
-  Clouds coulds;
-  Bubbles bubbles;
+class World {
+  //sun
+  int  sunR = 450;
+  int colorY= 62;
+  color colorE=0;
+  float sizeSunR=50;
+  boolean sizeSun=false;
+
+  int w=3000; //wiedth ocean
+  int h=2000; //hight ocean
+  float yoff = 0.0; //ocean movment
+  // Ocean
+  ArrayList<PVector> points;
 
   public World() {
-    clouds = new Clouds();
-    bubbles = new Bubbles();
+    //Dots in ocean
+    points = new ArrayList();
+    for (int i=0; i<500; i++)
+    {
+      points.add(new PVector(random(w), random(h-200, w)));
+    }
   }
 
   public void draw() {
     noStroke();
+    //Air World
     fill(213, 24, 99);
-    rect(-1000, -1500, 1000, 3000);
+    rect(0, 0, w, h);
+    //Sea World
+    //background
     fill(213, 83, 32);
-    rect(0, -1500, 1000, 3000);
+    rect(0, h, w, h-1000);
 
-    bubbles.draw();
-    clouds.draw();
+    //ocean moving
+    fill(213, 83, 32);
+    beginShape(); 
+    float xoff = 0;
+    for (float x = 0; x <=w; x += 10) {
+      float offset = map(noise(xoff, yoff), 0, 1, -25, 60);
+      vertex(x, h-150+offset); 
+      xoff += 0.01;
+    }
+    yoff += 0.01;
+    vertex(w, h+150);
+    vertex(0, h+150);
+    endShape(CLOSE);
+
+    // Dots
+    fill(0, 0, 100, 20);
+    for (int i=0; i<points.size(); i++)
+    {
+      ellipse(points.get(i).x, points.get(i).y, 2, 2);
+    }
+    
+    sunDraw();
+  }
+
+
+  void sunDraw() {
+    if (sizeSun) {
+      sizeSunR = sizeSunR + .35;
+      if (sizeSunR > 100) {
+        sizeSun = false;
+      }
+    } 
+    else {
+      sizeSunR = sizeSunR - .35;
+      if (sizeSunR < 20) {
+        sizeSun = true;
+      }
+    }
+    noStroke();
+    fill(55, 35, 99, 30); //yellow sun
+    ellipse(w-600, h-1400, sunR+sizeSunR, sunR+sizeSunR);
+    fill(234, 35, 71, 30); //Greyish sun
+    ellipse(600, h-1400, sunR-sizeSunR, sunR-sizeSunR);
+    fill(310, 65, 99, 10); // pinkish moon
+    ellipse(600, h-1350, sunR/3+sizeSunR, sunR/3+sizeSunR);
   }
 }
 
@@ -1196,7 +1288,7 @@ void initSelf(int id, int type, float x, float y, int size, int arms, int h, int
   else if (type == TYPE_FASTFISH)  
     creatures.put(selfID.toString(), new FastFish(new PVector(x, y), size, color(h,s,b)));
   else if (type == TYPE_AIRFIGHTER)
-    creatures.put(selfID.toString(), new AirFighter(5, x, y));
+    creatures.put(selfID.toString(), new AirFighter(arms, size, x, y));
 
   myCreature = (Creature)creatures.get(selfID.toString());
   console.log("myCreature = " + myCreature);
@@ -1236,7 +1328,7 @@ void serverAddNewCreature(int id, int type, float x, float y, int size, int arms
   else if (type == TYPE_FASTFISH)  
     creatures.put(id.toString(), new FastFish(new PVector(x, y), size, color(h,s,b)));
   else if (type == TYPE_AIRFIGHTER)
-    creatures.put(id.toString(), new AirFighter(5, x, y));
+    creatures.put(id.toString(), new AirFighter(arms, size, x, y));
 
 }
 
